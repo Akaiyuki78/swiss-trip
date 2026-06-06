@@ -134,6 +134,15 @@
       +'</div>'+cards;
   }
 
+  /* ---- platform-aware Google Maps link (iOS app scheme vs web) ---- */
+  var _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  function mapsLink(query){
+    var q = encodeURIComponent(query);
+    var href = _isIOS ? "comgooglemaps://?q=" + q : "https://www.google.com/maps/search/?api=1&query=" + q;
+    return '<a href="' + href + '"' + (_isIOS ? "" : ' target="_blank" rel="noopener"') + '>Open in Google Maps ↗</a>';
+  }
+
   /* ---- Google Maps (interactive; falls back to SVG) ---- */
   function initGMap(){
     var el=document.getElementById("gmap"), fb=document.getElementById("mapFallback");
@@ -145,7 +154,7 @@
     T.places.forEach(function(p){
       var pos={lat:p.lat,lng:p.lng};
       var mk=new google.maps.Marker({position:pos,map:map,title:p.name,label:{text:String(p.day),color:"#fff",fontSize:"11px"}});
-      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong><br>Day "+p.day});
+      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong><br>Day "+p.day+"<br>"+mapsLink(p.name+", Switzerland")});
       mk.addListener("click",function(){iw.open(map,mk);});
       b.extend(pos);
     });
@@ -179,7 +188,7 @@
     pts.forEach(function(p){
       var pos={lat:p.lat,lng:p.lng};
       var mk=new google.maps.Marker({position:pos,map:map,title:p.name});
-      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong>"});
+      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong><br>"+mapsLink(p.name+", Switzerland")});
       mk.addListener("click",function(){iw.open(map,mk);});
       b.extend(pos);
     });

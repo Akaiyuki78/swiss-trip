@@ -45,10 +45,11 @@
       const rn = stripParen(r.name);
       if (norm(rn).length > 3 && nact.indexOf(norm(rn)) >= 0) return r.addr || (rn + ", Switzerland");
     }
-    // sights / stops with coordinates
+    // sights / stops — match on the place name's core (before any ", City" suffix)
     for (const p of T.places) {
-      const pn = stripParen(p.name), npn = norm(pn);
-      if (npn.length > 3 && (nact.indexOf(npn) >= 0 || npn.indexOf(nact) >= 0)) return pn + ", Switzerland";
+      const full = stripParen(p.name);
+      const core = norm(full.split(",")[0]);
+      if (core.length > 3 && nact.indexOf(core) >= 0) return full + ", Switzerland";
     }
     return null;
   }

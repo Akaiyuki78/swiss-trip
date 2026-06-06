@@ -226,9 +226,10 @@
   /* ---------- Map ---------- */
   function map() {
     const rows = T.places.map((p) => `
-      <a class="place" href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener">
-        <div><div style="font-weight:600">${esc(p.name)}</div><div class="caption ghost">Day ${p.day}</div></div>
-        <div style="text-align:right"><div class="place__coord">${p.lat.toFixed(3)}, ${p.lng.toFixed(3)}</div><div class="caption" style="color:var(--accent)">Open ↗</div></div>
+      <a class="place" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ', Switzerland')}" target="_blank" rel="noopener">
+        <div class="place__thumb" data-thumb="${esc(p.name)}"></div>
+        <div style="flex:1;min-width:0"><div class="place__name">${esc(p.name)}</div><div class="caption ghost">Day ${p.day}</div></div>
+        <div class="caption" style="color:var(--accent);white-space:nowrap">Open ↗</div>
       </a>`).join("");
     const legend = T.days.map((d) => `<span class="legend"><i style="background:${dayColor(d.n)}"></i>Day ${d.n}</span>`).join("");
     const overview = `

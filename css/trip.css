@@ -80,9 +80,12 @@
 .booking__copy { font-size: var(--text-caption); color: var(--accent); font-weight: 700; white-space: nowrap; }
 
 /* ---- Map ---- */
-.place { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3); border-bottom: 1px solid var(--border); }
+.place { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); border-bottom: 1px solid var(--border); }
 .place:last-child { border-bottom: none; }
 .place__coord { font-family: var(--font-mono); font-size: var(--text-caption); color: var(--ink-ghost); }
+.place__name { font-weight: 600; }
+.place__thumb { flex-shrink: 0; width: 56px; height: 56px; border-radius: var(--r-md); overflow: hidden; background: var(--surface-raised); }
+.place__thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* ---- Info / converter ---- */
 .conv { display: flex; align-items: center; gap: var(--sp-2); }

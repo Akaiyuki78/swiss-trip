@@ -40,8 +40,8 @@
     // weather: live forecast
     if (route === "weather") loadWeather();
 
-    // map: interactive Google map (falls back to SVG)
-    if (route === "map") loadGoogleMap();
+    // map: interactive Google map (falls back to SVG) + stop thumbnails
+    if (route === "map") { loadGoogleMap(); loadPlaceThumbs(); }
 
     // day: check-off toggles + photo
     if (route === "day") {
@@ -189,6 +189,41 @@
         slot.innerHTML='<img src="'+media+'" alt="'+escHtml(place)+'" loading="lazy"><div class="dayphoto__cap">'+escHtml(place)+'</div>';
       }
     }catch(e){ /* silent: no photo */ }
+  }
+
+  /* ---- Place thumbnails for the Map stops list ---- */
+  async function loadPlaceThumbs(){
+    var cfg=window.CONFIG||{};
+    if(!cfg.googleMapsApiKey||cfg.enablePhotos===false||!navigator.onLine) return;
+    var slots=document.querySelectorAll("[data-thumb]");
+    // load up to 6 at a time to avoid flooding the network
+    async function loadOne(slot){
+      var name=slot.dataset.thumb; if(!name||slot.dataset.loaded) return;
+      slot.dataset.loaded="1";
+      var q=name+", Switzerland", cacheKey="photo:"+q;
+      var photoName=localStorage.getItem(cacheKey);
+      try{
+        if(!photoName){
+          var res=await fetch("https://places.googleapis.com/v1/places:searchText",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","X-Goog-Api-Key":cfg.googleMapsApiKey,"X-Goog-FieldMask":"places.photos"},
+            body:JSON.stringify({textQuery:q,maxResultCount:1})
+          });
+          var j=await res.json();
+          var ph=j.places&&j.places[0]&&j.places[0].photos;
+          if(ph&&ph.length){ photoName=ph[0].name; localStorage.setItem(cacheKey,photoName); }
+        }
+        if(photoName){
+          var src="https://places.googleapis.com/v1/"+photoName+"/media?maxWidthPx=120&key="+encodeURIComponent(cfg.googleMapsApiKey);
+          slot.innerHTML='<img src="'+src+'" alt="" loading="lazy" class="place__thumb-img">';
+        }
+      }catch(e){ /* silent */ }
+    }
+    // stagger: 6 concurrent, then rest
+    var arr=Array.from(slots);
+    for(var i=0;i<arr.length;i+=6){
+      await Promise.all(arr.slice(i,i+6).map(loadOne));
+    }
   }
 
   /* ---- offline indicator ---- */

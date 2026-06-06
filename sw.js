@@ -1,6 +1,6 @@
 /* Service worker — cache-first, precache the whole app for offline use.
    Bump CACHE when you change any file so clients pick up the update. */
-const CACHE = "swiss-2026-v3";
+const CACHE = "swiss-2026-v4";
 
 const ASSETS = [
   "./",
@@ -46,6 +46,17 @@ self.addEventListener("fetch", (e) => {
 
   // never cache external map/website links — let them hit the network
   if (url.origin !== location.origin) return;
+
+  // config.js is network-first so API-key/config edits take effect immediately
+  // (falls back to cache when offline).
+  if (url.pathname.endsWith("/js/config.js")) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return res; })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
 
   e.respondWith(
     caches.match(req).then((hit) => {

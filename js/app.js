@@ -152,12 +152,13 @@
   var _gmapReq=false;
   function loadGoogleMap(){
     var key=window.CONFIG&&window.CONFIG.googleMapsApiKey;
-    if(!key||!navigator.onLine) return;                 // keep SVG fallback
+    if(!key){ console.warn("[Map] No API key in window.CONFIG — showing offline fallback."); return; }
     if(window.google&&window.google.maps){ initGMap(); return; }
     if(_gmapReq) return; _gmapReq=true;
     window.__initGMap=initGMap;
     var s=document.createElement("script");
     s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(key)+"&callback=__initGMap&loading=async";
+    s.onerror=function(){ console.error("[Map] Failed to load Maps JS API — check key + referrer restriction + billing."); };
     s.async=true; document.head.appendChild(s);
   }
 

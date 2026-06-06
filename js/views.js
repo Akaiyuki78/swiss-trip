@@ -48,12 +48,15 @@
     let dots = "";
     pts.forEach((q, i) => {
       const c = o.colorByDay ? dayColor(q.p.day) : (o.accent || "var(--accent)");
-      dots += `<circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="5" fill="${c}" stroke="var(--surface)" stroke-width="1.5"><title>${esc(q.p.name)}</title></circle>`;
-      if (o.labels) {
-        const right = q.x > W * 0.6;
-        const tx = right ? q.x - 8 : q.x + 8;
-        dots += `<text x="${tx.toFixed(1)}" y="${(q.y + 3).toFixed(1)}" text-anchor="${right ? "end" : "start"}" class="mm-label">${esc(q.p.name)}</text>`;
-      }
+      const mapsUrl = `comgooglemaps://?q=${encodeURIComponent(q.p.name + ', Switzerland')}`;
+      const right = q.x > W * 0.6;
+      const tx = right ? q.x - 8 : q.x + 8;
+      // wrap dot + label in an SVG anchor; invisible r=16 circle gives a finger-friendly tap target
+      dots += `<a href="${mapsUrl}">
+        <circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="16" fill="transparent"/>
+        <circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="5" fill="${c}" stroke="var(--surface)" stroke-width="1.5"><title>${esc(q.p.name)}</title></circle>
+        ${o.labels ? `<text x="${tx.toFixed(1)}" y="${(q.y + 3).toFixed(1)}" text-anchor="${right ? "end" : "start"}" class="mm-label">${esc(q.p.name)}</text>` : ""}
+      </a>`;
     });
     return `<svg class="minimap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Route map">${grid}${path}${dots}</svg>`;
   }

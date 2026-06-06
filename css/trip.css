@@ -45,6 +45,8 @@
 .tl__time { font-family: var(--font-mono); font-size: var(--text-caption); color: var(--accent); font-weight: 700; }
 .tl__act { font-weight: 600; margin: 2px 0; }
 .tl__note { font-size: var(--text-sm); color: var(--ink-2); }
+.tl__map { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: var(--text-caption); font-weight: 600; color: var(--accent); text-decoration: none; }
+.tl__map:active { opacity: 0.7; }
 .tl__icon { font-size: 1rem; }
 .tl.is-done .tl__act { text-decoration: line-through; color: var(--ink-ghost); }
 .tl__check {

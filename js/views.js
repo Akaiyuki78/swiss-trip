@@ -20,10 +20,38 @@
   // everywhere else (desktop Chrome, Android) falls back to the universal https URL.
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const mapsHref = (name) => {
-    const q = encodeURIComponent(name + ", Switzerland");
+  const mapsUrl = (query) => {
+    const q = encodeURIComponent(query);
     return isIOS ? `comgooglemaps://?q=${q}` : `https://www.google.com/maps/search/?api=1&query=${q}`;
   };
+  const mapsHref = (name) => mapsUrl(name + ", Switzerland");
+
+  // normalise for fuzzy text matching (lowercase, strip accents/punctuation)
+  const norm = (s) => String(s == null ? "" : s).toLowerCase().normalize("NFD")
+    .replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const stripParen = (s) => String(s).replace(/\s*\([^)]*\)/g, "").trim();
+
+  // Find a mappable location for a timeline segment by matching its text against
+  // known places / restaurants / the day's hotel. Returns a maps query or null.
+  function segLocation(seg, d) {
+    if (seg.loc) return seg.loc;                         // explicit override in data
+    const nact = norm(seg.act);
+    // hotel check-in / back-to-hotel rows → the day's hotel
+    if (seg.type === "hotel" && d.hotel && !/^departure/i.test(d.hotel)) {
+      return stripParen(d.hotel) + ", Switzerland";
+    }
+    // named restaurants (use their public address for precision)
+    for (const r of T.restaurants) {
+      const rn = stripParen(r.name);
+      if (norm(rn).length > 3 && nact.indexOf(norm(rn)) >= 0) return r.addr || (rn + ", Switzerland");
+    }
+    // sights / stops with coordinates
+    for (const p of T.places) {
+      const pn = stripParen(p.name), npn = norm(pn);
+      if (npn.length > 3 && (nact.indexOf(npn) >= 0 || npn.indexOf(nact) >= 0)) return pn + ", Switzerland";
+    }
+    return null;
+  }
 
   const HM = (t) => { const [h, m] = String(t).split(":").map(Number); return h * 60 + (m || 0); };
   const toISO = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -160,6 +188,10 @@
     const items = d.segments.map((s, i) => {
       const key = `done:${d.date}:${i}`;
       const done = localStorage.getItem(key) === "1";
+      const loc = segLocation(s, d);
+      const mapLink = loc
+        ? `<a class="tl__map" href="${mapsUrl(loc)}"${isIOS ? "" : ' target="_blank" rel="noopener"'}>📍 Open in Maps</a>`
+        : "";
       return `
         <li class="tl ${done ? "is-done" : ""}" data-key="${key}">
           <span class="tl__dot">${ICON[s.type] || ""}</span>
@@ -167,6 +199,7 @@
           <div class="tl__time">${esc(s.t)}</div>
           <div class="tl__act">${esc(s.act)}</div>
           ${s.note ? `<div class="tl__note">${esc(s.note)}</div>` : ""}
+          ${mapLink}
           ${s.booking ? `<div style="margin-top:6px"><span class="chip">🎟️ ${esc(s.booking)}</span></div>` : ""}
         </li>`;
     }).join("");

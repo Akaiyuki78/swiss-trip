@@ -48,15 +48,12 @@
     let dots = "";
     pts.forEach((q, i) => {
       const c = o.colorByDay ? dayColor(q.p.day) : (o.accent || "var(--accent)");
-      const mapsUrl = `comgooglemaps://?q=${encodeURIComponent(q.p.name + ', Switzerland')}`;
-      const right = q.x > W * 0.6;
-      const tx = right ? q.x - 8 : q.x + 8;
-      // wrap dot + label in an SVG anchor; invisible r=16 circle gives a finger-friendly tap target
-      dots += `<a href="${mapsUrl}">
-        <circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="16" fill="transparent"/>
-        <circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="5" fill="${c}" stroke="var(--surface)" stroke-width="1.5"><title>${esc(q.p.name)}</title></circle>
-        ${o.labels ? `<text x="${tx.toFixed(1)}" y="${(q.y + 3).toFixed(1)}" text-anchor="${right ? "end" : "start"}" class="mm-label">${esc(q.p.name)}</text>` : ""}
-      </a>`;
+      dots += `<circle cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" r="5" fill="${c}" stroke="var(--surface)" stroke-width="1.5"><title>${esc(q.p.name)}</title></circle>`;
+      if (o.labels) {
+        const right = q.x > W * 0.6;
+        const tx = right ? q.x - 8 : q.x + 8;
+        dots += `<text x="${tx.toFixed(1)}" y="${(q.y + 3).toFixed(1)}" text-anchor="${right ? "end" : "start"}" class="mm-label">${esc(q.p.name)}</text>`;
+      }
     });
     return `<svg class="minimap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Route map">${grid}${path}${dots}</svg>`;
   }
@@ -168,8 +165,14 @@
     const todayISO = toISO(new Date());
     const banner = d.date === todayISO ? nowNextHTML(tripStatus()) : "";
     const dayPlaces = T.places.filter((p) => p.day === d.n);
+    const placeLinks = dayPlaces.map((p) =>
+      `<a class="place-chip" href="comgooglemaps://?q=${encodeURIComponent(p.name + ', Switzerland')}">📍 ${esc(p.name)}</a>`
+    ).join("");
     const mapCard = dayPlaces.length
-      ? `<div class="card acc-${d.n}" style="padding:var(--sp-3);margin-bottom:var(--sp-4)">${miniMapSVG(dayPlaces, { labels: true, connect: true, accent: dayColor(d.n), h: 200 })}</div>`
+      ? `<div class="card acc-${d.n}" style="padding:var(--sp-3);margin-bottom:var(--sp-4)">
+           ${miniMapSVG(dayPlaces, { labels: true, connect: true, accent: dayColor(d.n), h: 200 })}
+           <div class="place-chips">${placeLinks}</div>
+         </div>`
       : "";
 
     const drones = d.drones && d.drones.length
@@ -229,7 +232,7 @@
   /* ---------- Map ---------- */
   function map() {
     const rows = T.places.map((p) => `
-      <a class="place" href="comgooglemaps://?q=${encodeURIComponent(p.name + ', Switzerland')}" target="_blank" rel="noopener">
+      <a class="place" href="comgooglemaps://?q=${encodeURIComponent(p.name + ', Switzerland')}">
         <div class="place__thumb" data-thumb="${esc(p.name)}"></div>
         <div style="flex:1;min-width:0"><div class="place__name">${esc(p.name)}</div><div class="caption ghost">Day ${p.day}</div></div>
         <div class="caption" style="color:var(--accent);white-space:nowrap">Open ↗</div>

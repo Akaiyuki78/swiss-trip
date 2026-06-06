@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Switzerland 2026</title>
+  <meta name="description" content="8-day Switzerland road-trip itinerary, June 2026." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1B1A17" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Switzerland" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+
+  <!-- self-hosted fonts (with graceful system fallback if missing) -->
+  <link rel="stylesheet" href="css/fonts.css" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/trip.css" />
+</head>
+<body>
+  <main id="app" class="acc-4"><!-- views render here --></main>
+
+  <nav class="nav" id="nav">
+    <a class="nav__item" data-route="#/"        href="#/"><span class="ico">🗓️</span>Days</a>
+    <a class="nav__item" data-route="#/hotels"  href="#/hotels"><span class="ico">🏨</span>Hotels</a>
+    <a class="nav__item" data-route="#/map"     href="#/map"><span class="ico">🗺️</span>Map</a>
+    <a class="nav__item" data-route="#/weather" href="#/weather"><span class="ico">🌤️</span>Weather</a>
+    <a class="nav__item" data-route="#/info"    href="#/info"><span class="ico">ℹ️</span>Info</a>
+  </nav>
+
+  <div class="offline-pill" id="offlinePill">Offline — showing saved itinerary</div>
+
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+/* Self-hosted fonts so headings/body render offline.
+   If the woff2 files are missing, the system fallbacks in tokens.css apply. */
+@font-face {
+  font-family: "DM Serif Display";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/dm-serif-display.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("../fonts/figtree.woff2") format("woff2");
+}

@@ -1,0 +1,19 @@
+# dev tooling / OS cruft (not part of the deployed site)
+.claude/
+.DS_Store
+Thumbs.db
+*.log
+
+# PRIVATE — never publish these (comments must be on their own lines)
+# full itinerary incl. prices, confirmations, booking refs:
+data.private.js
+# self-contained offline builds with full private data:
+swiss-trip.html
+swiss-trip-clean.html
+swiss-trip-fixed.html
+# generated from private data:
+prerendered.json
+# node deps:
+node_modules/
+package.json
+package-lock.json

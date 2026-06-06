@@ -11,7 +11,7 @@
    Keep a billing budget alert on.
    ============================================================ */
 const CONFIG = {
-  googleMapsApiKey: "",   // e.g. "AIzaSy..."
+  googleMapsApiKey: "AIzaSyBxyRNat1kbYaB7QPQDy-Xy870_5qzy4E4",  // referrer-restricted to akaiyuki78.github.io
   enablePhotos: true,     // set false to disable per-day Google photos
 };
 window.CONFIG = CONFIG;

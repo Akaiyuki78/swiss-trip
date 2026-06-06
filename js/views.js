@@ -179,7 +179,8 @@
     ).join("");
     const mapCard = dayPlaces.length
       ? `<div class="card acc-${d.n}" style="padding:var(--sp-3);margin-bottom:var(--sp-4)">
-           ${miniMapSVG(dayPlaces, { labels: true, connect: true, accent: dayColor(d.n), h: 200 })}
+           <div id="dayGmap" class="gmap" data-day-map="${d.n}" style="display:none"></div>
+           <div id="dayMapFallback">${miniMapSVG(dayPlaces, { labels: true, connect: true, accent: dayColor(d.n), h: 200 })}</div>
            <div class="place-chips">${placeLinks}</div>
          </div>`
       : "";

@@ -58,6 +58,8 @@
       });
       const slot = document.querySelector("[data-photo-day]");
       if (slot) loadDayPhoto(Number(slot.dataset.photoDay), slot);
+      const dm = document.querySelector("[data-day-map]");
+      if (dm) loadDayMap(Number(dm.dataset.dayMap));
     }
 
     // info: converter + packing persistence
@@ -149,18 +151,41 @@
     });
     map.fitBounds(b);
   }
-  var _gmapReq=false;
-  function loadGoogleMap(){
+  // shared one-time loader for the Maps JS API; runs queued callbacks once ready
+  var _gmapReq=false, _gmapCbs=[];
+  function ensureMapsApi(cb){
     var key=window.CONFIG&&window.CONFIG.googleMapsApiKey;
     if(!key){ console.warn("[Map] No API key in window.CONFIG — showing offline fallback."); return; }
-    if(window.google&&window.google.maps){ initGMap(); return; }
+    if(window.google&&window.google.maps){ cb(); return; }
+    _gmapCbs.push(cb);
     if(_gmapReq) return; _gmapReq=true;
-    window.__initGMap=initGMap;
+    window.__initGMap=function(){ _gmapCbs.splice(0).forEach(function(fn){ try{fn();}catch(e){} }); };
     var s=document.createElement("script");
     s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(key)+"&callback=__initGMap&loading=async";
     s.onerror=function(){ console.error("[Map] Failed to load Maps JS API — check key + referrer restriction + billing."); };
     s.async=true; document.head.appendChild(s);
   }
+  function loadGoogleMap(){ ensureMapsApi(initGMap); }
+
+  /* ---- Per-day interactive map (this day's stops only) ---- */
+  function initDayMap(dayN){
+    var el=document.getElementById("dayGmap"), fb=document.getElementById("dayMapFallback");
+    if(!el||!window.google||!google.maps) return;
+    var T=window.TRIP, pts=T.places.filter(function(p){return p.day===dayN;});
+    if(!pts.length) return;
+    el.style.display="block"; if(fb) fb.style.display="none";
+    var map=new google.maps.Map(el,{zoom:11,center:{lat:pts[0].lat,lng:pts[0].lng},mapTypeControl:false,streetViewControl:false,fullscreenControl:false});
+    var b=new google.maps.LatLngBounds();
+    pts.forEach(function(p){
+      var pos={lat:p.lat,lng:p.lng};
+      var mk=new google.maps.Marker({position:pos,map:map,title:p.name});
+      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong>"});
+      mk.addListener("click",function(){iw.open(map,mk);});
+      b.extend(pos);
+    });
+    if(pts.length>1) map.fitBounds(b);
+  }
+  function loadDayMap(dayN){ ensureMapsApi(function(){ initDayMap(dayN); }); }
 
   /* ---- Per-day photo (Google Places Photos, cached) ---- */
   async function loadDayPhoto(dayN, slot){

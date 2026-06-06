@@ -1,6 +1,6 @@
 /* Service worker — cache-first, precache the whole app for offline use.
    Bump CACHE when you change any file so clients pick up the update. */
-const CACHE = "swiss-2026-v11";
+const CACHE = "swiss-2026-v12";
 
 const ASSETS = [
   "./",

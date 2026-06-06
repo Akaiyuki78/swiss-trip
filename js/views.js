@@ -16,6 +16,15 @@
   };
   const sgd = (chf) => chf == null ? "" : "S$" + Math.round(chf * T.meta.chfToSgd).toLocaleString();
 
+  // iOS opens the native Google Maps app via the comgooglemaps:// scheme;
+  // everywhere else (desktop Chrome, Android) falls back to the universal https URL.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const mapsHref = (name) => {
+    const q = encodeURIComponent(name + ", Switzerland");
+    return isIOS ? `comgooglemaps://?q=${q}` : `https://www.google.com/maps/search/?api=1&query=${q}`;
+  };
+
   const HM = (t) => { const [h, m] = String(t).split(":").map(Number); return h * 60 + (m || 0); };
   const toISO = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   // day-number → accent colour (index 0 unused)
@@ -166,7 +175,7 @@
     const banner = d.date === todayISO ? nowNextHTML(tripStatus()) : "";
     const dayPlaces = T.places.filter((p) => p.day === d.n);
     const placeLinks = dayPlaces.map((p) =>
-      `<a class="place-chip" href="comgooglemaps://?q=${encodeURIComponent(p.name + ', Switzerland')}">📍 ${esc(p.name)}</a>`
+      `<a class="place-chip" href="${mapsHref(p.name)}"${isIOS ? "" : ' target="_blank" rel="noopener"'}>📍 ${esc(p.name)}</a>`
     ).join("");
     const mapCard = dayPlaces.length
       ? `<div class="card acc-${d.n}" style="padding:var(--sp-3);margin-bottom:var(--sp-4)">
@@ -232,7 +241,7 @@
   /* ---------- Map ---------- */
   function map() {
     const rows = T.places.map((p) => `
-      <a class="place" href="comgooglemaps://?q=${encodeURIComponent(p.name + ', Switzerland')}">
+      <a class="place" href="${mapsHref(p.name)}"${isIOS ? "" : ' target="_blank" rel="noopener"'}>
         <div class="place__thumb" data-thumb="${esc(p.name)}"></div>
         <div style="flex:1;min-width:0"><div class="place__name">${esc(p.name)}</div><div class="caption ghost">Day ${p.day}</div></div>
         <div class="caption" style="color:var(--accent);white-space:nowrap">Open ↗</div>

@@ -33,6 +33,45 @@
     document.body.appendChild(btn);
   }
 
+  /* ---- multi-trip: active-trip switch + back-to-hub button ---- */
+  const NAV_ROUTES = ["", "hotels", "map", "weather", "info"];
+  function ensureBackBtn() {
+    if (document.getElementById("backBtn")) return;
+    const a = document.createElement("a");
+    a.id = "backBtn";
+    a.className = "icon-btn";
+    a.href = "#/";
+    a.style.cssText = "position:fixed;top:12px;left:12px;z-index:80;text-decoration:none";
+    a.setAttribute("aria-label", "All trips");
+    a.textContent = "←";
+    document.body.appendChild(a);
+  }
+  // Point window.TRIP at the chosen trip and reflect it in title/nav/back-button.
+  // Pass null on the hub (no active trip): hide nav + back button.
+  window.setActiveTrip = function (id) {
+    const nav = document.getElementById("nav");
+    const back = document.getElementById("backBtn");
+    if (!id || !(window.TRIPS && window.TRIPS[id])) {
+      window.ACTIVE_TRIP_ID = null;
+      document.title = "My Trips";
+      if (nav) nav.style.display = "none";
+      if (back) back.style.display = "none";
+      return;
+    }
+    window.ACTIVE_TRIP_ID = id;
+    window.TRIP = window.TRIPS[id];
+    document.title = window.TRIP.meta.title;
+    if (back) back.style.display = "";
+    if (nav) {
+      nav.style.display = "";
+      // rewrite each nav link to point inside the active trip
+      nav.querySelectorAll(".nav__item").forEach((aEl) => {
+        const r = aEl.dataset.route || "";
+        aEl.setAttribute("href", "#/" + id + "/" + (r ? r : ""));
+      });
+    }
+  };
+
   /* ---- per-view interactions ---- */
   window.addEventListener("view:rendered", (e) => {
     const route = e.detail.route;
@@ -142,6 +181,8 @@
     var href = _isIOS ? "comgooglemaps://?q=" + q : "https://www.google.com/maps/search/?api=1&query=" + q;
     return '<a href="' + href + '"' + (_isIOS ? "" : ' target="_blank" rel="noopener"') + '>Open in Google Maps ↗</a>';
   }
+  // active trip's country suffix for place searches (keeps results in the right country)
+  function tripCountry(){ return (window.TRIP && window.TRIP.meta && window.TRIP.meta.country) ? ", " + window.TRIP.meta.country : ""; }
 
   /* ---- Google Maps (interactive; falls back to SVG) ---- */
   function initGMap(){
@@ -154,7 +195,7 @@
     T.places.forEach(function(p){
       var pos={lat:p.lat,lng:p.lng};
       var mk=new google.maps.Marker({position:pos,map:map,title:p.name,label:{text:String(p.day),color:"#fff",fontSize:"11px"}});
-      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong><br>Day "+p.day+"<br>"+mapsLink(p.name+", Switzerland")});
+      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong><br>Day "+p.day+"<br>"+mapsLink(p.name+tripCountry())});
       mk.addListener("click",function(){iw.open(map,mk);});
       b.extend(pos);
     });
@@ -188,7 +229,7 @@
     pts.forEach(function(p){
       var pos={lat:p.lat,lng:p.lng};
       var mk=new google.maps.Marker({position:pos,map:map,title:p.name});
-      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong><br>"+mapsLink(p.name+", Switzerland")});
+      var iw=new google.maps.InfoWindow({content:"<strong>"+escHtml(p.name)+"</strong><br>"+mapsLink(p.name+tripCountry())});
       mk.addListener("click",function(){iw.open(map,mk);});
       b.extend(pos);
     });
@@ -204,7 +245,8 @@
     var first=T.places.find(function(p){return p.day===dayN;});
     var dayObj=T.days.find(function(d){return d.n===dayN;});
     var place=(first&&first.name)||(dayObj&&dayObj.title); if(!place) return;
-    var q=place+", Switzerland", cacheKey="photo:"+q;
+    var ctry=(T.meta&&T.meta.country)?", "+T.meta.country:"";
+    var q=place+ctry, cacheKey="photo:"+q;
     var photoName=localStorage.getItem(cacheKey);
     try{
       if(!photoName){
@@ -230,11 +272,12 @@
     var cfg=window.CONFIG||{};
     if(!cfg.googleMapsApiKey||cfg.enablePhotos===false||!navigator.onLine) return;
     var slots=document.querySelectorAll("[data-thumb]");
+    var ctry=(window.TRIP&&window.TRIP.meta&&window.TRIP.meta.country)?", "+window.TRIP.meta.country:"";
     // load up to 6 at a time to avoid flooding the network
     async function loadOne(slot){
       var name=slot.dataset.thumb; if(!name||slot.dataset.loaded) return;
       slot.dataset.loaded="1";
-      var q=name+", Switzerland", cacheKey="photo:"+q;
+      var q=name+ctry, cacheKey="photo:"+q;
       var photoName=localStorage.getItem(cacheKey);
       try{
         if(!photoName){
@@ -269,11 +312,8 @@
   /* ---- boot ---- */
   function boot() {
     ensureThemeToggle();
-    // auto-open today's plan on first load during the trip
-    if (!location.hash || location.hash === "#/" || location.hash === "#") {
-      const n = window.Router.todayDayNumber();
-      if (n) { location.replace("#/day/" + n); }
-    }
+    ensureBackBtn();
+    // Root shows the trips hub; deep links open straight into a trip.
     window.Router.render();
     updateOnline();
   }

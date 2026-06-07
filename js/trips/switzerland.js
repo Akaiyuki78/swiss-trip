@@ -1,10 +1,15 @@
 /* ============================================================
    Switzerland 2026 — public itinerary data (no personal info).
+   Registered on window.TRIPS so the hub can list it.
    Full private version (prices, confirmations, booking refs) is
    kept out of this repo in data.private.js.
    ============================================================ */
-const TRIP = {
+window.TRIPS = window.TRIPS || {};
+window.TRIPS.switzerland = {
   meta: {
+    id: "switzerland",
+    emoji: "🇨🇭",
+    country: "Switzerland",
     title: "Switzerland 2026",
     subtitle: "8-day self-drive itinerary",
     startDate: "2026-06-13",
@@ -325,5 +330,3 @@ const TRIP = {
     droneNote: "Switzerland follows EU drone rules — register, label your drone, keep line of sight, and avoid airports, crowds and nature reserves. Check local restrictions before each flight.",
   },
 };
-
-window.TRIP = TRIP;

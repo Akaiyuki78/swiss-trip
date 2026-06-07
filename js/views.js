@@ -1,7 +1,11 @@
 /* Render functions. Each returns an HTML string for #app.
    Plain globals (no modules) so it also runs from file://. */
 (function () {
-  const T = window.TRIP;
+  // T = the ACTIVE trip. It's refreshed from window.TRIP at the top of every
+  // public view (the router sets window.TRIP before rendering), so all the
+  // helpers below keep working unchanged across multiple trips.
+  let T = window.TRIP;
+  const useActive = () => { T = window.TRIP; };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -24,7 +28,9 @@
     const q = encodeURIComponent(query);
     return isIOS ? `comgooglemaps://?q=${q}` : `https://www.google.com/maps/search/?api=1&query=${q}`;
   };
-  const mapsHref = (name) => mapsUrl(name + ", Switzerland");
+  // append the active trip's country so the Maps search resolves to the right place
+  const country = () => (T && T.meta && T.meta.country ? ", " + T.meta.country : "");
+  const mapsHref = (name) => mapsUrl(name + country());
 
   // normalise for fuzzy text matching (lowercase, strip accents/punctuation)
   const norm = (s) => String(s == null ? "" : s).toLowerCase().normalize("NFD")
@@ -38,18 +44,18 @@
     const nact = norm(seg.act);
     // hotel check-in / back-to-hotel rows → the day's hotel
     if (seg.type === "hotel" && d.hotel && !/^departure/i.test(d.hotel)) {
-      return stripParen(d.hotel) + ", Switzerland";
+      return stripParen(d.hotel) + country();
     }
     // named restaurants (use their public address for precision)
     for (const r of T.restaurants) {
       const rn = stripParen(r.name);
-      if (norm(rn).length > 3 && nact.indexOf(norm(rn)) >= 0) return r.addr || (rn + ", Switzerland");
+      if (norm(rn).length > 3 && nact.indexOf(norm(rn)) >= 0) return r.addr || (rn + country());
     }
     // sights / stops — match on the place name's core (before any ", City" suffix)
     for (const p of T.places) {
       const full = stripParen(p.name);
       const core = norm(full.split(",")[0]);
-      if (core.length > 3 && nact.indexOf(core) >= 0) return full + ", Switzerland";
+      if (core.length > 3 && nact.indexOf(core) >= 0) return full + country();
     }
     return null;
   }
@@ -96,11 +102,15 @@
     return `<svg class="minimap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Route map">${grid}${path}${dots}</svg>`;
   }
 
+  // internal link to a route within the ACTIVE trip
+  const tripHref = (sub) => "#/" + T.meta.id + "/" + (sub || "");
+
   /* where are we in the trip right now? */
   function tripStatus(now) {
     now = now || new Date();
     const start = new Date(T.meta.startDate + "T00:00:00");
-    const end = new Date(T.days[T.days.length - 1].date + "T23:59:59");
+    const lastDay = T.days[T.days.length - 1];   // stub trips have no days yet
+    const end = new Date((lastDay ? lastDay.date : T.meta.endDate) + "T23:59:59");
     if (now < start) return { phase: "before", days: Math.ceil((start - now) / 86400000) };
     if (now > end) return { phase: "after" };
     const day = T.days.find((d) => d.date === toISO(now));
@@ -114,10 +124,12 @@
 
   function nowNextHTML(st) {
     if (st.phase === "before") {
-      return `<a class="card nownext acc-4" href="#/day/1">
+      const preview = T.days.length ? ` · tap to preview Day 1` : "";
+      const href = T.days.length ? tripHref("day/1") : tripHref("");
+      return `<a class="card nownext acc-4" href="${href}">
         <div class="nownext__lbl">Countdown</div>
         <div class="nownext__big">${st.days} day${st.days === 1 ? "" : "s"} to go ✈️</div>
-        <div class="muted small">Until Switzerland · tap to preview Day 1</div></a>`;
+        <div class="muted small">Until ${esc(T.meta.title)}${preview}</div></a>`;
     }
     if (st.phase === "after") {
       return `<div class="card"><div class="nownext__lbl">Trip complete 🎉</div><div class="muted small">Hope it was unforgettable.</div></div>`;
@@ -126,7 +138,7 @@
       const row = (sg, cls) => sg
         ? `<div class="nownext__row ${cls}"><span class="nownext__time">${esc(sg.t)}</span><span>${esc(sg.act)}</span></div>`
         : `<div class="muted small">${cls.includes("next") ? "That's a wrap for today." : "Day starts soon…"}</div>`;
-      return `<a class="card nownext acc-${st.day.n}" href="#/day/${st.day.n}">
+      return `<a class="card nownext acc-${st.day.n}" href="${tripHref("day/" + st.day.n)}">
         <div class="nownext__lbl">Now · Day ${st.day.n}</div>
         ${row(st.cur, "")}
         <div class="nownext__lbl" style="margin-top:10px">Up next</div>
@@ -135,15 +147,60 @@
     return "";
   }
 
+  /* ---------- Trips hub (landing) ---------- */
+  // status badge for a trip card, derived from today vs its dates
+  function tripPhase(tr, now) {
+    now = now || new Date();
+    const start = new Date(tr.meta.startDate + "T00:00:00");
+    const end = new Date(tr.meta.endDate + "T23:59:59");
+    if (now < start) {
+      const days = Math.ceil((start - now) / 86400000);
+      return { badge: days === 0 ? "Tomorrow" : `in ${days} day${days === 1 ? "" : "s"}`, cls: "today-tag" };
+    }
+    if (now > end) return { badge: "completed", cls: "daycard__date" };
+    const dayNo = Math.floor((now - start) / 86400000) + 1;
+    const total = tr.days.length;
+    return { badge: total ? `Day ${dayNo} of ${total}` : "happening now", cls: "today-tag" };
+  }
+
+  function hub() {
+    const now = new Date();
+    const trips = Object.values(window.TRIPS || {})
+      .slice()
+      .sort((a, b) => a.meta.startDate.localeCompare(b.meta.startDate));
+    const cards = trips.map((tr) => {
+      const m = tr.meta, ph = tripPhase(tr, now), n = tr.days.length;
+      return `
+        <a class="card card--link daycard acc-4" href="#/${esc(m.id)}/">
+          <div class="daycard__head">
+            <span class="daycard__day">${m.emoji ? m.emoji + " " : ""}${esc(m.title)}</span>
+            <span class="${ph.cls}">${esc(ph.badge)}</span>
+          </div>
+          ${m.subtitle ? `<div class="daycard__title">${esc(m.subtitle)}</div>` : ""}
+          <div class="daycard__route">${fmtDate(m.startDate)} – ${fmtDate(m.endDate)}${n ? ` · ${n} days` : ""}</div>
+        </a>`;
+    }).join("");
+    return `
+      <section class="view">
+        <div class="hero">
+          <div class="hero__eyebrow">My itineraries</div>
+          <h1 class="hero__title">My Trips</h1>
+          <div class="hero__meta">${trips.length} trip${trips.length === 1 ? "" : "s"} · tap one to open</div>
+        </div>
+        <div class="stack">${cards}</div>
+      </section>`;
+  }
+
   /* ---------- Home / Days ---------- */
   function home(todayN) {
+    useActive();
     const m = T.meta;
     const days = T.days.map((d) => {
       const isToday = d.n === todayN;
       const top3 = d.segments.filter((s) => ["sight", "cable", "drone", "meal", "play", "shop"].includes(s.type))
         .slice(0, 3).map((s) => esc(s.act.split("(")[0].trim())).join(" · ");
       return `
-        <a class="card card--link daycard acc-${d.n} ${isToday ? "is-today" : ""}" href="#/day/${d.n}">
+        <a class="card card--link daycard acc-${d.n} ${isToday ? "is-today" : ""}" href="${tripHref("day/" + d.n)}">
           <div class="daycard__head">
             <span class="daycard__day">Day ${d.n} · ${esc(d.dow)}</span>
             ${isToday ? `<span class="today-tag">Today</span>` : `<span class="daycard__date">${fmtDate(d.date)}</span>`}
@@ -166,10 +223,10 @@
         ${nowNextHTML(tripStatus())}
 
         <div class="quick">
-          ${quickItem("#/weather", "🌤️", "Weather", "Live trip forecast")}
-          ${quickItem("#/hotels", "🏨", "Hotels", T.hotels.length + " stays")}
-          ${quickItem("#/map", "🗺️", "Map", T.places.length + " stops")}
-          ${quickItem("#/info", "🧳", "Info", "Packing & emergencies")}
+          ${quickItem(tripHref("weather"), "🌤️", "Weather", "Live trip forecast")}
+          ${quickItem(tripHref("hotels"), "🏨", "Hotels", T.hotels.length + " stays")}
+          ${quickItem(tripHref("map"), "🗺️", "Map", T.places.length + " stops")}
+          ${quickItem(tripHref("info"), "🧳", "Info", "Packing & emergencies")}
         </div>
 
         <div class="section-label">Day by day</div>
@@ -184,6 +241,7 @@
 
   /* ---------- Day detail ---------- */
   function day(n) {
+    useActive();
     const d = T.days.find((x) => x.n === Number(n));
     if (!d) return `<section class="view"><p>Day not found.</p></section>`;
     const items = d.segments.map((s, i) => {
@@ -246,6 +304,7 @@
 
   /* ---------- Hotels ---------- */
   function hotels() {
+    useActive();
     const cards = T.hotels.map((h) => `
         <div class="card stack">
           <div class="row row--between">
@@ -260,6 +319,7 @@
 
   /* ---------- Weather (live forecast via Open-Meteo, see app.js) ---------- */
   function weather() {
+    useActive();
     // app.js fills #wxList after fetching; we render the seasonal fallback inline first.
     const seasonal = T.weather.map((w) => `
       <div class="weatherrow"><div><b>${esc(w.region)}</b><div class="caption ghost">${esc(w.note)}</div></div>
@@ -275,6 +335,7 @@
 
   /* ---------- Map ---------- */
   function map() {
+    useActive();
     const rows = T.places.map((p) => `
       <a class="place" href="${mapsHref(p.name)}"${isIOS ? "" : ' target="_blank" rel="noopener"'}>
         <div class="place__thumb" data-thumb="${esc(p.name)}"></div>
@@ -300,6 +361,7 @@
 
   /* ---------- Info ---------- */
   function info() {
+    useActive();
     const p = T.practical;
     const emergencies = p.emergency.map((e) => `<div class="roomrow"><span>${esc(e.label)}</span><span class="mono" style="font-weight:700">${esc(e.value)}</span></div>`).join("");
     const packing = p.packing.map((x, i) => {
@@ -326,7 +388,7 @@
 
         <div class="card">
           <div class="section-label" style="margin-top:0">🗣️ Phrasebook</div>
-          ${["de", "fr"].map((k) => { const p = T.phrasebook[k]; return `<div class="phrase"><div class="phrase__lbl">${esc(p.label)}</div>${p.rows.map((r) => `<div class="phraserow"><span class="muted">${esc(r[0])}</span><span class="mono">${esc(r[1])}</span></div>`).join("")}</div>`; }).join("")}
+          ${Object.keys(T.phrasebook || {}).map((k) => { const p = T.phrasebook[k]; return `<div class="phrase"><div class="phrase__lbl">${esc(p.label)}</div>${p.rows.map((r) => `<div class="phraserow"><span class="muted">${esc(r[0])}</span><span class="mono">${esc(r[1])}</span></div>`).join("")}</div>`; }).join("")}
         </div>
 
         <div class="card">
@@ -357,5 +419,5 @@
       </section>`;
   }
 
-  window.Views = { home, day, hotels, weather, map, info };
+  window.Views = { hub, home, day, hotels, weather, map, info };
 })();

@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Switzerland 2026</title>
-  <meta name="description" content="8-day Switzerland road-trip itinerary, June 2026." />
+  <title>My Trips</title>
+  <meta name="description" content="A hub for my travel itineraries — offline-capable trip plans." />
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1B1A17" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Switzerland" />
+  <meta name="apple-mobile-web-app-title" content="My Trips" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="icon" href="icons/icon-192.png" />
 
@@ -24,18 +24,22 @@
 <body>
   <main id="app" class="acc-4"><!-- views render here --></main>
 
-  <nav class="nav" id="nav">
-    <a class="nav__item" data-route="#/"        href="#/"><span class="ico">🗓️</span>Days</a>
-    <a class="nav__item" data-route="#/hotels"  href="#/hotels"><span class="ico">🏨</span>Hotels</a>
-    <a class="nav__item" data-route="#/map"     href="#/map"><span class="ico">🗺️</span>Map</a>
-    <a class="nav__item" data-route="#/weather" href="#/weather"><span class="ico">🌤️</span>Weather</a>
-    <a class="nav__item" data-route="#/info"    href="#/info"><span class="ico">ℹ️</span>Info</a>
+  <!-- nav hrefs are rewritten per active trip by app.js setActiveTrip(); hidden on the hub -->
+  <nav class="nav" id="nav" style="display:none">
+    <a class="nav__item" data-route=""        href="#/"><span class="ico">🗓️</span>Days</a>
+    <a class="nav__item" data-route="hotels"  href="#/"><span class="ico">🏨</span>Hotels</a>
+    <a class="nav__item" data-route="map"     href="#/"><span class="ico">🗺️</span>Map</a>
+    <a class="nav__item" data-route="weather" href="#/"><span class="ico">🌤️</span>Weather</a>
+    <a class="nav__item" data-route="info"    href="#/"><span class="ico">ℹ️</span>Info</a>
   </nav>
 
   <div class="offline-pill" id="offlinePill">Offline — showing saved itinerary</div>
 
   <script src="js/config.js"></script>
-  <script src="js/data.js"></script>
+  <!-- one module per trip; each registers itself on window.TRIPS -->
+  <script src="js/trips/switzerland.js"></script>
+  <script src="js/trips/tokyo.js"></script>
+  <script src="js/trips/hokkaido.js"></script>
   <script src="js/views.js"></script>
   <script src="js/router.js"></script>
   <script src="js/app.js"></script>

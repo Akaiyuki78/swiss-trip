@@ -1,7 +1,7 @@
 {
-  "name": "Switzerland 2026",
-  "short_name": "Switzerland",
-  "description": "8-day Switzerland road-trip itinerary, June 2026.",
+  "name": "My Trips",
+  "short_name": "My Trips",
+  "description": "A hub for my travel itineraries — offline-capable trip plans.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

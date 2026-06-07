@@ -1,6 +1,6 @@
 /* Service worker — cache-first, precache the whole app for offline use.
    Bump CACHE when you change any file so clients pick up the update. */
-const CACHE = "swiss-2026-v16";
+const CACHE = "trips-v17";
 
 const ASSETS = [
   "./",
@@ -11,7 +11,9 @@ const ASSETS = [
   "css/base.css",
   "css/trip.css",
   "js/config.js",
-  "js/data.js",
+  "js/trips/switzerland.js",
+  "js/trips/tokyo.js",
+  "js/trips/hokkaido.js",
   "js/views.js",
   "js/router.js",
   "js/app.js",

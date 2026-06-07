@@ -1,6 +1,6 @@
 /* Service worker — cache-first, precache the whole app for offline use.
    Bump CACHE when you change any file so clients pick up the update. */
-const CACHE = "trips-v17";
+const CACHE = "trips-v22";
 
 const ASSETS = [
   "./",

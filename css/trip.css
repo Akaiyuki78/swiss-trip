@@ -86,12 +86,21 @@
 .place:last-child { border-bottom: none; }
 .place__coord { font-family: var(--font-mono); font-size: var(--text-caption); color: var(--ink-ghost); }
 .place__name { font-weight: 600; }
-.place__thumb { flex-shrink: 0; width: 56px; height: 56px; border-radius: var(--r-md); overflow: hidden; background: var(--surface-raised); }
+.place__thumb { flex-shrink: 0; width: 56px; height: 56px; border-radius: var(--r-md); overflow: hidden; background: var(--surface-raised); display: grid; place-items: center; }
+.place__thumb--lg { width: 72px; height: 72px; }
 .place__thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* fallback tile shown until a Places photo loads (or when offline / key-restricted) */
+.thumb-ph { font-size: 26px; opacity: 0.55; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent); width: 100%; height: 100%; display: grid; place-items: center; }
 
 .place-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
 .place-chip { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: var(--surface-raised); color: var(--ink); font-size: var(--text-caption); font-weight: 600; text-decoration: none; border: 1px solid var(--border); }
 .place-chip:active { opacity: 0.7; }
+
+/* ---- Trips hub ---- */
+.hubcard { cursor: pointer; }
+.hubcard:active { transform: scale(0.995); }
+.hubstar { background: none; border: none; cursor: pointer; font-size: 20px; line-height: 1; padding: 2px 4px; color: var(--ink-ghost); }
+.hubstar.is-on { color: var(--accent); }
 
 /* ---- Info / converter ---- */
 .conv { display: flex; align-items: center; gap: var(--sp-2); }

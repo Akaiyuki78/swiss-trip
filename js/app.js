@@ -33,39 +33,46 @@
     document.body.appendChild(btn);
   }
 
-  /* ---- multi-trip: active-trip switch + back-to-hub button ---- */
+  /* ---- multi-trip: default trip, active-trip switch, back-to-hub button ---- */
   const NAV_ROUTES = ["", "hotels", "map", "weather", "info"];
-  function ensureBackBtn() {
-    if (document.getElementById("backBtn")) return;
-    const a = document.createElement("a");
-    a.id = "backBtn";
-    a.className = "icon-btn";
-    a.href = "#/";
-    a.style.cssText = "position:fixed;top:12px;left:12px;z-index:80;text-decoration:none";
-    a.setAttribute("aria-label", "All trips");
-    a.textContent = "←";
-    document.body.appendChild(a);
-  }
-  // Point window.TRIP at the chosen trip and reflect it in title/nav/back-button.
-  // Pass null on the hub (no active trip): hide nav + back button.
+
+  // Which trip opens by default. User's saved choice wins; otherwise pick the
+  // smartest one: a trip happening today, else the next upcoming, else the latest.
+  window.getDefaultTripId = function () {
+    const trips = window.TRIPS || {};
+    const ids = Object.keys(trips);
+    if (!ids.length) return null;
+    const saved = localStorage.getItem("defaultTripId");
+    if (saved && trips[saved]) return saved;
+    const today = new Date().toISOString().slice(0, 10);
+    const byDate = ids.slice().sort((a, b) => trips[a].meta.startDate.localeCompare(trips[b].meta.startDate));
+    const ongoing = byDate.find((id) => trips[id].meta.startDate <= today && today <= trips[id].meta.endDate);
+    if (ongoing) return ongoing;
+    const upcoming = byDate.find((id) => trips[id].meta.startDate >= today);
+    return upcoming || byDate[byDate.length - 1];
+  };
+  window.setDefaultTripId = function (id) {
+    if (window.TRIPS && window.TRIPS[id]) localStorage.setItem("defaultTripId", id);
+  };
+  // Point window.TRIP at the chosen trip and reflect it in title + nav.
+  // Pass null on the hub (no active trip): hide the bottom nav.
   window.setActiveTrip = function (id) {
     const nav = document.getElementById("nav");
-    const back = document.getElementById("backBtn");
     if (!id || !(window.TRIPS && window.TRIPS[id])) {
       window.ACTIVE_TRIP_ID = null;
       document.title = "My Trips";
       if (nav) nav.style.display = "none";
-      if (back) back.style.display = "none";
       return;
     }
     window.ACTIVE_TRIP_ID = id;
     window.TRIP = window.TRIPS[id];
     document.title = window.TRIP.meta.title;
-    if (back) back.style.display = "";
     if (nav) {
       nav.style.display = "";
-      // rewrite each nav link to point inside the active trip
+      // rewrite each per-trip nav link to point inside the active trip;
+      // the "Trips" tab (data-hub) always points at the hub, so skip it.
       nav.querySelectorAll(".nav__item").forEach((aEl) => {
+        if (aEl.dataset.hub) return;
         const r = aEl.dataset.route || "";
         aEl.setAttribute("href", "#/" + id + "/" + (r ? r : ""));
       });
@@ -76,11 +83,30 @@
   window.addEventListener("view:rendered", (e) => {
     const route = e.detail.route;
 
+    // hub: open a trip on card tap; the ★ sets the default without navigating
+    if (route === "hub") {
+      document.querySelectorAll("[data-set-default]").forEach((btn) => {
+        btn.addEventListener("click", (ev) => {
+          ev.preventDefault(); ev.stopPropagation();
+          window.setDefaultTripId(btn.dataset.setDefault);
+          window.Router.render();               // re-render hub to update the stars
+        });
+      });
+      document.querySelectorAll("[data-trip-open]").forEach((card) => {
+        const go = () => { location.hash = "#/" + card.dataset.tripOpen + "/"; };
+        card.addEventListener("click", (ev) => { if (ev.target.closest("[data-set-default]")) return; go(); });
+        card.addEventListener("keydown", (ev) => { if (ev.key === "Enter") go(); });
+      });
+    }
+
     // weather: live forecast
     if (route === "weather") loadWeather();
 
     // map: interactive Google map (falls back to SVG) + stop thumbnails
     if (route === "map") { loadGoogleMap(); loadPlaceThumbs(); }
+
+    // hotels: load a Places photo thumbnail per hotel (same mechanism as map stops)
+    if (route === "hotels") loadPlaceThumbs();
 
     // day: check-off toggles + photo
     if (route === "day") {
@@ -312,8 +338,13 @@
   /* ---- boot ---- */
   function boot() {
     ensureThemeToggle();
-    ensureBackBtn();
-    // Root shows the trips hub; deep links open straight into a trip.
+    // Fresh visit (no hash) → open the default trip directly, so you're not
+    // forced through the hub every time. An explicit "#/" (the ← button) still
+    // shows the hub, and deep links open their trip.
+    if (!location.hash) {
+      const def = window.getDefaultTripId();
+      if (def) { location.replace("#/" + def + "/"); }
+    }
     window.Router.render();
     updateOnline();
   }

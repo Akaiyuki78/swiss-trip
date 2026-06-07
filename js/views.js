@@ -168,24 +168,33 @@
     const trips = Object.values(window.TRIPS || {})
       .slice()
       .sort((a, b) => a.meta.startDate.localeCompare(b.meta.startDate));
+    const defaultId = (window.getDefaultTripId && window.getDefaultTripId()) || null;
     const cards = trips.map((tr) => {
       const m = tr.meta, ph = tripPhase(tr, now), n = tr.days.length;
+      const isDefault = m.id === defaultId;
+      // a clickable card (div, not <a>) so the star button inside behaves cleanly
       return `
-        <a class="card card--link daycard acc-4" href="#/${esc(m.id)}/">
+        <div class="card daycard hubcard acc-4" data-trip-open="${esc(m.id)}" role="link" tabindex="0">
           <div class="daycard__head">
             <span class="daycard__day">${m.emoji ? m.emoji + " " : ""}${esc(m.title)}</span>
-            <span class="${ph.cls}">${esc(ph.badge)}</span>
+            <button class="hubstar${isDefault ? " is-on" : ""}" data-set-default="${esc(m.id)}"
+              aria-label="${isDefault ? "Default trip" : "Open this trip by default"}"
+              title="${isDefault ? "Opens by default" : "Make this the default"}">${isDefault ? "★" : "☆"}</button>
           </div>
           ${m.subtitle ? `<div class="daycard__title">${esc(m.subtitle)}</div>` : ""}
           <div class="daycard__route">${fmtDate(m.startDate)} – ${fmtDate(m.endDate)}${n ? ` · ${n} days` : ""}</div>
-        </a>`;
+          <div class="row row--between" style="margin-top:8px">
+            <span class="${ph.cls}">${esc(ph.badge)}</span>
+            ${isDefault ? `<span class="caption ghost">Opens by default</span>` : ""}
+          </div>
+        </div>`;
     }).join("");
     return `
       <section class="view">
         <div class="hero">
           <div class="hero__eyebrow">My itineraries</div>
           <h1 class="hero__title">My Trips</h1>
-          <div class="hero__meta">${trips.length} trip${trips.length === 1 ? "" : "s"} · tap one to open</div>
+          <div class="hero__meta">${trips.length} trip${trips.length === 1 ? "" : "s"} · tap to open · ★ sets the one that opens by default</div>
         </div>
         <div class="stack">${cards}</div>
       </section>`;
@@ -305,16 +314,33 @@
   /* ---------- Hotels ---------- */
   function hotels() {
     useActive();
-    const cards = T.hotels.map((h) => `
+    const ext = isIOS ? "" : ' target="_blank" rel="noopener"';
+    const cards = T.hotels.map((h) => {
+      // precise maps query: hotel name + its street address (falls back to name + country)
+      const mapQ = h.addr ? `${h.name}, ${h.addr}` : `${h.name}${country()}`;
+      const actions = [
+        h.phone ? `<a class="btn btn--ghost" href="tel:${h.phone.replace(/[^+\d]/g, "")}">📞 Call</a>` : "",
+        `<a class="btn btn--ghost" href="${mapsUrl(mapQ)}"${ext}>📍 Map</a>`,
+        h.url ? `<a class="btn btn--ghost" href="${esc(h.url)}"${ext}>Website ↗</a>` : "",
+      ].filter(Boolean).join("");
+      return `
         <div class="card stack">
-          <div class="row row--between">
-            <div><div class="hotel__name">${esc(h.name)}</div><div class="hotel__loc">${esc(h.location)} · ${h.nights} night${h.nights > 1 ? "s" : ""}</div></div>
-            <span class="chip chip--muted">🌙 ${esc(h.night)}</span>
+          <div class="row" style="gap:var(--sp-3)">
+            <div class="place__thumb place__thumb--lg" data-thumb="${esc(h.name + ", " + h.location)}"><span class="thumb-ph">🏨</span></div>
+            <div style="flex:1;min-width:0">
+              <div class="row row--between">
+                <div><div class="hotel__name">${esc(h.name)}</div><div class="hotel__loc">${esc(h.location)} · ${h.nights} night${h.nights > 1 ? "s" : ""}</div></div>
+                <span class="chip chip--muted">🌙 ${esc(h.night)}</span>
+              </div>
+              ${h.room ? `<div class="small muted" style="margin-top:4px">${esc(h.room)}</div>` : ""}
+              ${h.addr ? `<div class="caption ghost" style="margin-top:4px">${esc(h.addr)}</div>` : ""}
+              ${h.phone ? `<div class="caption" style="margin-top:2px;color:var(--accent)">${esc(h.phone)}</div>` : ""}
+            </div>
           </div>
-          ${h.room ? `<div class="small muted">${esc(h.room)}</div>` : ""}
-          ${h.url ? `<a class="btn btn--ghost" href="${esc(h.url)}" target="_blank" rel="noopener">Open website ↗</a>` : ""}
-        </div>`).join("");
-    return `<section class="view"><div class="hero" style="padding-bottom:var(--sp-3)"><h1 class="hero__title">Hotels</h1><div class="hero__meta">${T.hotels.length} stays across the route</div></div><div class="stack">${cards}</div></section>`;
+          <div class="row wrap" style="gap:var(--sp-2)">${actions}</div>
+        </div>`;
+    }).join("");
+    return `<section class="view"><div class="hero" style="padding-bottom:var(--sp-3)"><h1 class="hero__title">Hotels</h1><div class="hero__meta">${T.hotels.length} stays across the route · tap to call or map</div></div><div class="stack">${cards}</div></section>`;
   }
 
   /* ---------- Weather (live forecast via Open-Meteo, see app.js) ---------- */
@@ -375,13 +401,18 @@
 
         <div class="card stack">
           <div class="section-label" style="margin:0">💱 Currency converter</div>
-          <div class="conv"><span class="conv__lbl">CHF</span><input id="convChf" type="number" inputmode="decimal" value="100"></div>
+          <div class="conv"><span class="conv__lbl">${esc(T.meta.currency || "CHF")}</span><input id="convChf" type="number" inputmode="decimal" value="100"></div>
           <div class="conv"><span class="conv__lbl">SGD</span><input id="convSgd" type="number" inputmode="decimal" readonly></div>
-          <div class="caption ghost">Rate ≈ 1 CHF = ${T.meta.chfToSgd} SGD (edit CHF to convert)</div>
+          <div class="caption ghost">Rate ≈ 1 ${esc(T.meta.currency || "CHF")} = ${T.meta.chfToSgd} SGD (edit ${esc(T.meta.currency || "CHF")} to convert)</div>
         </div>
 
+        ${p.dining ? `<div class="card">
+          <div class="section-label" style="margin-top:0">🍽️ Dining ideas</div>
+          ${p.dining.map((g) => `<div class="phrase"><div class="phrase__lbl">${esc(g.label)}</div>${g.items.map((it) => `<div class="small" style="margin:4px 0"><b>${esc(it.name)}</b>${it.note ? ` — <span class="muted">${esc(it.note)}</span>` : ""}</div>`).join("")}</div>`).join("")}
+        </div>` : ""}
+
         <div class="card">
-          <div class="section-label" style="margin-top:0">🌤️ Typical June weather</div>
+          <div class="section-label" style="margin-top:0">🌤️ Typical weather</div>
           ${T.weather.map((w) => `<div class="weatherrow"><div><b>${esc(w.region)}</b><div class="caption ghost">${esc(w.note)}</div></div><div class="weathertemp">${esc(w.hi)}<span class="ghost"> / ${esc(w.lo)}</span></div></div>`).join("")}
           <div class="caption ghost" style="margin-top:8px">Seasonal averages — not a live forecast.</div>
         </div>
